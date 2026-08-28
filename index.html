@@ -23,7 +23,7 @@ body {
   color:var(--ink); display:flex; flex-direction:column; align-items:stretch;
   direction:rtl; padding:0;
 }
-.frame { width:100%; display:flex; flex-direction:column; padding-bottom:118px; }
+.frame { width:100%; display:flex; flex-direction:column; padding-bottom:calc(150px + env(safe-area-inset-bottom)); }
 .bottombar { position:fixed; bottom:0; left:0; right:0; z-index:20; border-top:1px solid #8f7226; border-bottom:0;
   padding-bottom:env(safe-area-inset-bottom); }
 .goldbar {
@@ -99,7 +99,7 @@ body {
   .level { font-size:.6rem; }
   .level .dot { width:12px; height:12px; }
   .progressbar { height:4px; margin:3px 12px 4px; }
-  .frame { padding-bottom:78px; }
+  .frame { padding-bottom:calc(105px + env(safe-area-inset-bottom)); }
 }
 </style>
 </head>
