@@ -42,14 +42,8 @@ body {
 .pagenav .chip { border:1px solid var(--gold-deep); background:linear-gradient(180deg,var(--pearl),#ece1c2);
   border-radius:999px; padding:6px 16px; font-size:.9rem; min-width:80px; text-align:center; font-weight:600;
   box-shadow:inset 0 1px 0 #fff, 0 1px 3px rgba(90,70,15,.3); }
-.pagebox {
-  position:relative; width:100%; background:var(--sheet);
-  padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right);
-  border:0; border-radius:0;
-}
-.pagebox img { display:block; width:100%; height:auto; user-select:none; -webkit-user-drag:none; }
-.veil { position:absolute; background:var(--sheet); }
-.veil.next { box-shadow:0 0 0 2px var(--gold-line) inset; border-radius:6px; }
+.pagebox { width:100%; background:var(--sheet); }
+#pagecanvas { display:block; width:100%; height:auto; }
 .status { font-size:.8rem; color:var(--muted); text-align:center; min-height:1.1em; padding:4px 12px 0; }
 .status.good { color:var(--green-deep); font-weight:600; }
 .controls { display:flex; align-items:center; justify-content:space-between; padding:4px 14px 2px; gap:10px; }
@@ -114,7 +108,7 @@ body {
       <button id="prevPg" aria-label="السابقة">‹</button>
     </div>
   </div>
-  <div class="pagebox" id="pagebox"><img id="pageimg" alt="صفحة المصحف"><div id="veils"></div></div>
+  <div class="pagebox" id="pagebox"><canvas id="pagecanvas"></canvas></div>
   <div class="donebanner" id="doneBanner">ما شاء الله! أتممت الصفحة ✓</div>
   <div class="bottombar goldbar">
   <div class="status" id="status">اضغط الميكروفون واقرأ غيبًا — الكلمة الصحيحة تظهر كما هي في المصحف تمامًا</div>
@@ -149,44 +143,66 @@ let LEVEL=2;
 function fuzzyEqual(a,b){if(a===b)return true;const L=Math.max(a.length,b.length);let d=L<=3?0:L<=5?1:2;if(LEVEL===1)d+=1;if(LEVEL===3)d=0;return lev(a,b)<=d;}
 function matchTranscript(exp,ptr,text){const toks=tokenize(text);const matched=[];for(let i=0;i<toks.length&&ptr<exp.length;i++){const t=toks[i];if(fuzzyEqual(t,exp[ptr])){matched.push(ptr);ptr++;continue;}if(ptr+1<exp.length&&fuzzyEqual(t,exp[ptr]+exp[ptr+1])){matched.push(ptr,ptr+1);ptr+=2;continue;}let rep=false;for(let b=Math.max(0,ptr-8);b<ptr;b++){if(fuzzyEqual(t,exp[b])){rep=true;break;}}if(rep)continue;}return{pointer:ptr,matched};}
 
-const img=document.getElementById('pageimg'), veilsHost=document.getElementById('veils');
+const canvas=document.getElementById('pagecanvas'), ctx=canvas.getContext('2d');
 const statusEl=document.getElementById('status'), pageChip=document.getElementById('pageChip');
 const pbar=document.getElementById('pbar'), countEl=document.getElementById('count'), totalEl=document.getElementById('total');
 const doneBanner=document.getElementById('doneBanner'), micBtn=document.getElementById('micBtn');
-let pageIdx=0, tokens=[], veils=[], expected=[], wordIdxOfToken=[], markersByWord={}, pointer=0;
+let pageIdx=0, tokens=[], words=[], expected=[], markersByWord={}, pointer=0;
+let pageImage=null, revealed=new Set();
+const SHEET='#fffdf5', GOLD='#b8a24a';
+
+function draw(){
+  if(!pageImage) return;
+  const cssW=canvas.parentElement.clientWidth;
+  const scale=cssW/pageImage.naturalWidth;
+  const cssH=Math.round(pageImage.naturalHeight*scale);
+  const dpr=window.devicePixelRatio||1;
+  canvas.style.height=cssH+'px';
+  canvas.width=Math.round(cssW*dpr); canvas.height=Math.round(cssH*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.drawImage(pageImage,0,0,cssW,cssH);
+  const px=0.005*cssW, py=0.004*cssH;
+  words.forEach((w,i)=>{
+    if(revealed.has(i)) return;
+    ctx.fillStyle=SHEET;
+    ctx.fillRect(w.x*cssW-px, w.y*cssH-py, w.w*cssW+2*px, w.h*cssH+2*py);
+    if(markersByWord[i]) for(const m of markersByWord[i])
+      ctx.fillRect(m.x*cssW-px, m.y*cssH-py, m.w*cssW+2*px, m.h*cssH+2*py);
+  });
+  if(pointer<words.length){
+    const w=words[pointer];
+    ctx.strokeStyle=GOLD; ctx.lineWidth=2;
+    ctx.strokeRect(w.x*cssW-px, w.y*cssH-py, w.w*cssW+2*px, w.h*cssH+2*py);
+  }
+}
+window.addEventListener('resize',draw);
+window.addEventListener('orientationchange',()=>setTimeout(draw,250));
 
 function loadPage(p){
   const nnn=String(p).padStart(3,'0');
   const info=PAGE_BOXES[String(p)];
-  img.src='img/page-'+nnn+'.png';
-  veilsHost.innerHTML=''; veils=[]; expected=[]; markersByWord={}; pointer=0;
+  words=[]; expected=[]; markersByWord={}; pointer=0; revealed=new Set();
   doneBanner.style.display='none';
   tokens=info.tokens;
   let wi=-1;
-  tokens.forEach((tk,i)=>{
-    const v=document.createElement('div');
-    v.className='veil';
-    const pad=0.004;
-    v.style.right=((1-tk.x-tk.w)*100-pad*100)+'%';
-    v.style.top=(tk.y*100-0.3)+'%';
-    v.style.width=((tk.w+2*pad)*100)+'%';
-    v.style.height=(tk.h*100+0.6)+'%';
-    veilsHost.appendChild(v);
-    if(tk.e){ (markersByWord[wi]=markersByWord[wi]||[]).push(v); }
-    else { wi++; expected.push(tk.n); veils.push(v); }
+  tokens.forEach(tk=>{
+    if(tk.e){ (markersByWord[wi]=markersByWord[wi]||[]).push(tk); }
+    else { wi++; words.push(tk); expected.push(tk.n); }
   });
   pageChip.textContent='صفحة '+ar(p);
   totalEl.textContent=ar(expected.length); countEl.textContent='٠'; pbar.style.width='0%';
-  highlightNext();
   statusEl.className='status';
   statusEl.textContent='اقرأ غيبًا وستظهر الكلمات كما في المصحف — أمِل الهاتف عرضيًا لتكبير الكلمات';
+  pageImage=new Image();
+  pageImage.onload=draw;
+  pageImage.src='img/page-'+nnn+'.png';
 }
-function highlightNext(){ veils.forEach(v=>v.classList.remove('next')); if(pointer<veils.length)veils[pointer].classList.add('next'); }
 function applyMatches(r){
-  for(const i of r.matched){ veils[i].remove(); if(markersByWord[i])markersByWord[i].forEach(m=>m.remove()); }
-  pointer=r.pointer; highlightNext();
+  for(const i of r.matched) revealed.add(i);
+  pointer=r.pointer;
   countEl.textContent=ar(pointer);
   pbar.style.width=(100*pointer/Math.max(1,expected.length))+'%';
+  draw();
   if(pointer>=expected.length){ doneBanner.style.display='block'; statusEl.textContent=''; stopListening(); }
   else if(r.matched.length){ statusEl.textContent='أحسنت، أكمل…'; statusEl.className='status good'; }
 }
