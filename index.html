@@ -136,7 +136,7 @@ body {
 </div>
 <script src="boxes.js"></script>
 <script>
-const PAGES=[1,2,596,597,598,599,600,601,602,603,604];
+const PAGES=['604b',596,597,598,599,600,601,602,603,604];
 const AR='٠١٢٣٤٥٦٧٨٩'; const ar=n=>String(n).split('').map(d=>AR[+d]).join('');
 function normalizeArabic(s){return s.replace(/[\u064B-\u0670\u06D6-\u06ED\u0640\u0610-\u061A]/g,'').replace(/[\u0622\u0623\u0625\u0671\u0672\u0673\u0675]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/[^\u0621-\u064A]/g,'');}
 function tokenize(t){return t.split(/[^\u0621-\u0670\u06D6-\u06ED]+/).map(normalizeArabic).filter(w=>w.length>0);}
@@ -167,7 +167,7 @@ function draw(){
   const px=0.005*cssW, py=0.004*cssH;
   words.forEach((w,i)=>{
     if(revealed.has(i)) return;
-    ctx.fillStyle=SHEET;
+    ctx.fillStyle=currentVeil;
     ctx.fillRect(w.x*cssW-px, w.y*cssH-py, w.w*cssW+2*px, w.h*cssH+2*py);
     if(markersByWord[i]) for(const m of markersByWord[i])
       ctx.fillRect(m.x*cssW-px, m.y*cssH-py, m.w*cssW+2*px, m.h*cssH+2*py);
@@ -188,8 +188,10 @@ if(window.visualViewport){ visualViewport.addEventListener('resize',zoomCheck); 
 window.addEventListener('resize',draw);
 window.addEventListener('orientationchange',()=>setTimeout(draw,250));
 
+function pageLabel(p){ return p==='604b' ? 'صفحة ٦٠٤ 📖' : 'صفحة '+ar(p); }
+let currentVeil='#fffdf5';
 function loadPage(p){
-  const nnn=String(p).padStart(3,'0');
+  const nnn=(typeof p==='number')?String(p).padStart(3,'0'):p;
   const info=PAGE_BOXES[String(p)];
   words=[]; expected=[]; markersByWord={}; pointer=0; revealed=new Set();
   doneBanner.style.display='none';
@@ -199,13 +201,14 @@ function loadPage(p){
     if(tk.e){ (markersByWord[wi]=markersByWord[wi]||[]).push(tk); }
     else { wi++; words.push(tk); expected.push(tk.n); }
   });
-  pageChip.textContent='صفحة '+ar(p);
+  pageChip.textContent=pageLabel(p);
+  currentVeil = info.veil || '#fffdf5';
   totalEl.textContent=ar(expected.length); countEl.textContent='٠'; pbar.style.width='0%';
   statusEl.className='status';
   statusEl.textContent='اقرأ غيبًا وستظهر الكلمات كما في المصحف — أمِل الهاتف عرضيًا لتكبير الكلمات';
   pageImage=new Image();
   pageImage.onload=draw;
-  pageImage.src='img/page-'+nnn+'.png';
+  pageImage.src = (p==='604b') ? 'img/page-604-book.png' : 'img/page-'+nnn+'.png';
 }
 function applyMatches(r){
   for(const i of r.matched) revealed.add(i);
