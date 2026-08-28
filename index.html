@@ -185,7 +185,6 @@ body {
 <div class="sheetwrap"><div class="mushaf-sheet" id="sheet"></div></div>
 <div class="donebanner" id="doneBanner">ما شاء الله! أتممت الصفحة ✓</div>
 <div class="status" id="status">اضغط زر الميكروفون واقرأ غيبًا — الكلمة الصحيحة تظهر مكانها في الصفحة</div>
-<div class="status" id="heard" style="direction:rtl"></div>
 <div class="controls">
   <button class="micbtn" id="micBtn" aria-label="ابدأ التلاوة">🎙️</button>
   <div class="levels" id="levels">
@@ -307,10 +306,10 @@ async function startListening(){
     let interim='';
     for(let i=processed;i<ev.results.length;i++){
       const r=ev.results[i];
-      if(r.isFinal){processed=i+1;const t=r[0].transcript;heardEl.textContent='سمعت: '+t;applyMatches(matchTranscript(expected,pointer,t));}
+      if(r.isFinal){processed=i+1;applyMatches(matchTranscript(expected,pointer,r[0].transcript));}
       else interim+=r[0].transcript;
     }
-    if(interim){heardEl.textContent='… '+interim;applyMatches(matchTranscript(expected,pointer,interim));}
+    if(interim){applyMatches(matchTranscript(expected,pointer,interim));}
   };
   rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){stopListening();showMicHelp();}};
   rec.onend=()=>{if(listening){try{rec.start();}catch(_){}}};
