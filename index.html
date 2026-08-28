@@ -76,26 +76,18 @@ body {
     0 0 0 6px var(--gold-deep),
     0 6px 18px rgba(60,45,10,.35);
   width:100%;
-  padding:22px 16px;
+  padding:18px 10px;
   direction:rtl;
   position:relative;
-}
-.mushaf-sheet::before {
-  content:''; position:absolute; inset:7px; pointer-events:none;
-  border:1px solid var(--gold-line); border-radius:5px;
-  background:
-    repeating-linear-gradient(45deg, rgba(184,162,74,.12) 0 3px, transparent 3px 9px);
-  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor; mask-composite:exclude;
-  padding:5px;
 }
 .mline {
   display:flex; justify-content:space-between; align-items:baseline;
   direction:rtl; white-space:nowrap;
-  font-size:clamp(15px, 4.9vw, 24px);
-  line-height:2.0;
+  font-size:clamp(18px, 6.1vw, 30px);
+  line-height:2.15;
 }
-.mline.center { justify-content:center; gap:.35em; }
+.mline.center { justify-content:center; gap:.4em; }
+  .mline.loose { justify-content:flex-start; gap:.45em; }
 .mword,.mmark { display:inline-block; border-radius:5px; transition:color .35s, background .35s; }
 .mword.veiled { color:transparent; background:var(--veil); user-select:none; }
 .mword.revealed { color:var(--ink); background:transparent; animation:pop .3s ease; }
@@ -244,7 +236,7 @@ const countEl=document.getElementById('count'),totalEl=document.getElementById('
 const doneBanner=document.getElementById('doneBanner');
 let pageIdx=0,wordEls=[],expected=[],markersByWord={},pointer=0;
 
-function loadPage(p){
+async function loadPage(p){
   const nnn=String(p).padStart(3,'0');
   const data=PAGE_DATA[String(p)];
   sheet.innerHTML='';wordEls=[];expected=[];markersByWord={};pointer=0;
@@ -252,7 +244,7 @@ function loadPage(p){
   for(const line of data.lines){
     if(line.t==='s'){const d=document.createElement('div');d.className='sura-band';d.textContent='سُورَةُ '+line.name;sheet.appendChild(d);}
     else if(line.t==='b'){const d=document.createElement('div');d.className='basmala-line';d.textContent=BASMALA;sheet.appendChild(d);}
-    else{const d=document.createElement('div');d.className='mline'+(line.tk.length<=2?' center':'');d.style.fontFamily=`'QP${nnn}'`;
+    else{const d=document.createElement('div');d.className='mline'+(line.tk.length<=2?' center':line.tk.length<=4?' loose':'');d.style.fontFamily=`'QP${nnn}'`;
       for(const tk of line.tk){const s=document.createElement('span');s.textContent=tk.g;
         if(tk.e){s.className='mmark';const wi=wordEls.length-1;(markersByWord[wi]=markersByWord[wi]||[]).push(s);s.style.visibility=wi>=0?'hidden':'visible';}
         else{s.className='mword veiled';wordEls.push(s);expected.push(tk.n);}
@@ -260,6 +252,13 @@ function loadPage(p){
       sheet.appendChild(d);}
   }
   pageChip.textContent='صفحة '+ar(p);
+  try {
+    const probe = (wordEls[0]||{}).textContent || '';
+    const ok = await document.fonts.load(`22px 'QP${nnn}'`, probe);
+    if (!ok || ok.length === 0) {
+      statusEl.textContent = 'تنبيه: خط المصحف لم يُحمّل على هذا الجهاز — أخبرنا بنوع هاتفك ومتصفحك';
+    }
+  } catch(_){}
   totalEl.textContent=ar(expected.length);countEl.textContent='٠';pbar.style.width='0%';
   highlightNext();
 }
