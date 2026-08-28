@@ -159,6 +159,7 @@ function draw(){
   const scale=cssW/pageImage.naturalWidth;
   const cssH=Math.round(pageImage.naturalHeight*scale);
   const dpr=window.devicePixelRatio||1;
+  canvas.style.width=cssW+'px';
   canvas.style.height=cssH+'px';
   canvas.width=Math.round(cssW*dpr); canvas.height=Math.round(cssH*dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
