@@ -81,14 +81,10 @@ body {
   position:relative;
 }
 .mline {
-  display:flex; justify-content:space-between; align-items:baseline;
-  direction:rtl; white-space:nowrap;
-  font-size:clamp(18px, 6.1vw, 30px);
-  line-height:2.15;
+  display:block; text-align:center; direction:rtl; white-space:nowrap;
+  line-height:1.9;
 }
-.mline.center { justify-content:center; gap:.4em; }
-  .mline.loose { justify-content:flex-start; gap:.45em; }
-.mword,.mmark { display:inline-block; border-radius:5px; transition:color .35s, background .35s; }
+.mword,.mmark { display:inline-block; border-radius:4px; transition:color .35s, background .35s; padding:0 1px; }
 .mword.veiled { color:transparent; background:var(--veil); user-select:none; }
 .mword.revealed { color:var(--ink); background:transparent; animation:pop .3s ease; }
 .mword.next { box-shadow:0 0 0 2px var(--gold-line) inset; }
@@ -244,13 +240,14 @@ async function loadPage(p){
   for(const line of data.lines){
     if(line.t==='s'){const d=document.createElement('div');d.className='sura-band';d.textContent='سُورَةُ '+line.name;sheet.appendChild(d);}
     else if(line.t==='b'){const d=document.createElement('div');d.className='basmala-line';d.textContent=BASMALA;sheet.appendChild(d);}
-    else{const d=document.createElement('div');d.className='mline'+(line.tk.length<=2?' center':line.tk.length<=4?' loose':'');d.style.fontFamily=`'QP${nnn}'`;
+    else{const d=document.createElement('div');d.className='mline';d.style.fontFamily=`'QP${nnn}'`;
       for(const tk of line.tk){const s=document.createElement('span');s.textContent=tk.g;
         if(tk.e){s.className='mmark';const wi=wordEls.length-1;(markersByWord[wi]=markersByWord[wi]||[]).push(s);s.style.visibility=wi>=0?'hidden':'visible';}
         else{s.className='mword veiled';wordEls.push(s);expected.push(tk.n);}
         d.appendChild(s);}
       sheet.appendChild(d);}
   }
+  fitPage();
   pageChip.textContent='صفحة '+ar(p);
   try {
     const probe = (wordEls[0]||{}).textContent || '';
@@ -262,6 +259,18 @@ async function loadPage(p){
   totalEl.textContent=ar(expected.length);countEl.textContent='٠';pbar.style.width='0%';
   highlightNext();
 }
+function fitPage(){
+  const lines=[...sheet.querySelectorAll('.mline')];
+  if(!lines.length) return;
+  const probe=48; // measure at a fixed size
+  lines.forEach(l=>l.style.fontSize=probe+'px');
+  const avail=sheet.clientWidth - 24;
+  let maxW=0;
+  lines.forEach(l=>{ maxW=Math.max(maxW, l.scrollWidth); });
+  const size=Math.max(14, Math.min(34, probe*avail/maxW));
+  lines.forEach(l=>l.style.fontSize=size+'px');
+}
+window.addEventListener('resize',()=>fitPage());
 function highlightNext(){wordEls.forEach(e=>e.classList.remove('next'));if(pointer<wordEls.length)wordEls[pointer].classList.add('next');}
 function applyMatches(r){
   for(const i of r.matched){wordEls[i].classList.remove('veiled');wordEls[i].classList.add('revealed');
