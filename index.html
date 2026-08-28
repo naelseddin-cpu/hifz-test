@@ -42,6 +42,7 @@ body {
 .pagenav .chip { border:1px solid var(--gold-deep); background:linear-gradient(180deg,var(--pearl),#ece1c2);
   border-radius:999px; padding:6px 16px; font-size:.9rem; min-width:80px; text-align:center; font-weight:600;
   box-shadow:inset 0 1px 0 #fff, 0 1px 3px rgba(90,70,15,.3); }
+.zoomwarn { display:none; background:#b03a24; color:#fff; text-align:center; padding:10px 14px; font-size:.95rem; font-weight:600; }
 .pagebox { width:100%; background:var(--sheet); }
 #pagecanvas { display:block; width:100%; height:auto; }
 .status { font-size:.8rem; color:var(--muted); text-align:center; min-height:1.1em; padding:4px 12px 0; }
@@ -108,7 +109,8 @@ body {
       <button id="prevPg" aria-label="السابقة">‹</button>
     </div>
   </div>
-  <div class="pagebox" id="pagebox"><canvas id="pagecanvas"></canvas></div>
+  <div class="zoomwarn" id="zoomWarn">⚠️ الصفحة مكبّرة من جلسة سابقة — أغلق هذا التبويب تمامًا وافتح الرابط في تبويب جديد</div>
+<div class="pagebox" id="pagebox"><canvas id="pagecanvas"></canvas></div>
   <div class="donebanner" id="doneBanner">ما شاء الله! أتممت الصفحة ✓</div>
   <div class="bottombar goldbar">
   <div class="status" id="status">اضغط الميكروفون واقرأ غيبًا — الكلمة الصحيحة تظهر كما هي في المصحف تمامًا</div>
@@ -175,6 +177,13 @@ function draw(){
     ctx.strokeRect(w.x*cssW-px, w.y*cssH-py, w.w*cssW+2*px, w.h*cssH+2*py);
   }
 }
+function zoomCheck(){
+  const vv=window.visualViewport;
+  const warn=document.getElementById('zoomWarn');
+  if(vv && (vv.scale>1.03 || vv.offsetLeft>2)) warn.style.display='block';
+  else warn.style.display='none';
+}
+if(window.visualViewport){ visualViewport.addEventListener('resize',zoomCheck); visualViewport.addEventListener('scroll',zoomCheck); setInterval(zoomCheck,1500); }
 window.addEventListener('resize',draw);
 window.addEventListener('orientationchange',()=>setTimeout(draw,250));
 
