@@ -1,0 +1,15 @@
+# Quran Trainer Backend Requirements
+# Install: pip install -r requirements.txt
+
+# Core framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# Speech recognition (OpenAI Whisper)
+openai-whisper>=20231117
+
+# Whisper also requires ffmpeg on your system:
+#   Ubuntu/Debian:  sudo apt install ffmpeg
+#   macOS:          brew install ffmpeg
+#   Windows:        download from ffmpeg.org and add to PATH
